@@ -19,7 +19,7 @@ ICON_PATH = pathlib.Path("abstract_swirl/abstract_swirl_160x160.png")
 
 class QuestionOfTheDay(commands.Cog):
     def __init__(self, bot):
-        self.logger = logging.getLogger("red.aps-cogs.question_of_the_day")
+        self.logger = logging.getLogger("red.aps-cogs.qotd")
         self.bot = bot
         self.config = Config.get_conf(
             self, identifier="551742410770612234|038a0658-85c9-416d-93ea-7c0bdb426734"
@@ -165,7 +165,7 @@ class QuestionOfTheDay(commands.Cog):
 
     @qotd.command()
     @commands.admin_or_permissions(manage_guild=True)
-    async def post_at(
+    async def postat(
         self,
         ctx: commands.GuildContext,
         hour_after_midnight_utc: int,
@@ -207,7 +207,7 @@ class QuestionOfTheDay(commands.Cog):
 
     @qotd.command()
     @commands.admin_or_permissions(manage_guild=True)
-    async def post_here(self, ctx: commands.GuildContext):
+    async def posthere(self, ctx: commands.GuildContext):
         """
         Set the current channel as where QOTDs should be posted.
         """
