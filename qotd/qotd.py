@@ -278,7 +278,7 @@ class QuestionOfTheDay(commands.Cog):
         self, ctx: commands.GuildContext, suggestion_id: int | typing.Literal["all"]
     ):
         """
-        Approve a suggestion using its id (see `qotd suggestions`).
+        Approve a suggestion using its id (see qotd suggestions).
 
         This adds the suggestion to the main queue.
         """
@@ -330,7 +330,7 @@ class QuestionOfTheDay(commands.Cog):
         """
         Decline a suggestion and remove it from the suggestion queue.
 
-        For the suggestion's id, see `qotd suggestions`.
+        For the suggestion's id, see qotd suggestions.
         """
         async with self.config.guild(
             ctx.guild
