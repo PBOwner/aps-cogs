@@ -11,13 +11,14 @@ import random
 import time
 import typing
 from .errors import *
+from .dashboard_integration import DashboardIntegration
 
 MAX_QUESTIONS_PER_GUILD = 1000
 MAX_QUESTION_SIZE = 500
 ICON_PATH = pathlib.Path("abstract_swirl/abstract_swirl_160x160.png")
 
 
-class QuestionOfTheDay(commands.Cog):
+class QuestionOfTheDay(DashboardIntegration, commands.Cog):
     def __init__(self, bot):
         self.logger = logging.getLogger("red.aps-cogs.question_of_the_day")
         self.bot = bot
@@ -202,7 +203,7 @@ class QuestionOfTheDay(commands.Cog):
             )
         else:
             await ctx.reply(
-                "Error: the conditions 0 ≤ hours < 24 and 0 ≤ minutes < 60 must be observed."
+                "Error: the conditions 0  hours < 24 and 0  minutes < 60 must be observed."
             )
 
     @qotd.command()
@@ -443,3 +444,26 @@ class QuestionOfTheDay(commands.Cog):
             )
             return False
         return True
+
+    async def update_guild_to_post_at(self, guild, hour, minute):
+        async with self.config.guild_to_post_at() as guild_to_post_at:
+            post_at = await self.config.guild(guild).post_at()
+            old_post_at = repr((post_at["hour"], post_at["minute"]))
+            new_post_at = repr((hour, minute))
+            guild_id_str = repr(guild.id)
+            if old_post_at in guild_to_post_at and guild_id_str in guild_to_post_at[old_post_at]:
+                del guild_to_post_at[old_post_at][guild_id_str]
+                if not guild_to_post_at[old_post_at]:
+                    del guild_to_post_at[old_post_at]
+            if new_post_at not in guild_to_post_at:
+                guild_to_post_at[new_post_at] = {}
+            guild_to_post_at[new_post_at][guild_id_str] = 1
+
+async def setup(bot):
+    """
+    Adds the cog to the bot.
+
+    Args:
+        bot (discord.Bot): The bot instance.
+    """
+    await bot.add_cog(QuestionOfTheDay(bot))
