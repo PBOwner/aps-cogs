@@ -58,7 +58,24 @@ class DashboardIntegration:
                 "redirect_url": kwargs["request_url"],
             }
 
-        source = "{{ form|safe }}"
+        source = """
+        <h3>Manage QOTD Settings</h3>
+        <form method="post">
+            {{ form.hidden_tag() }}
+            <div class="form-group">
+                {{ form.qotd_channel.label }} {{ form.qotd_channel(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ form.qotd_time_hour.label }} {{ form.qotd_time_hour(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ form.qotd_time_minute.label }} {{ form.qotd_time_minute(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ form.submit(class="btn btn-primary") }}
+            </div>
+        </form>
+        """
 
         return {
             "status": 0,
@@ -111,9 +128,24 @@ class DashboardIntegration:
         questions_list = '\n'.join([f"{i}. {q['question']}" for i, q in enumerate(questions)])
 
         source = f"""
+        <h3>Manage QOTD Questions</h3>
         <h4>Current Questions:</h4>
         <pre>{questions_list}</pre>
-        {{ form|safe }}
+        <form method="post">
+            {{ form.hidden_tag() }}
+            <div class="form-group">
+                {{ form.question.label }} {{ form.question(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ form.remove_question.label }} {{ form.remove_question(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ form.action.label }} {{ form.action(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ form.submit(class="btn btn-primary") }}
+            </div>
+        </form>
         """
 
         return {
