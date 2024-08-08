@@ -104,8 +104,8 @@ class DashboardIntegration:
             remove_index = int(form.remove_question.data) if form.remove_question.data else None
             async with self.cog.config.guild(guild).questions() as questions:
                 if action == "add":
-                    if len(questions) >= MAX_QUESTIONS_PER_GUILD:
-                        message = f"Error: too many questions already added in this server! Max is {MAX_QUESTIONS_PER_GUILD}."
+                    if len(questions) >= 1000:  # Use the constant MAX_QUESTIONS_PER_GUILD if defined
+                        message = f"Error: too many questions already added in this server! Max is 1000."
                         category = "error"
                     else:
                         questions.append({"question": question, "asked_by": user.id})
@@ -150,5 +150,5 @@ class DashboardIntegration:
 
         return {
             "status": 0,
-            "web_content": {"form": form, "source": source},
+            "web_content": {"source": source, "form": form},
         }
