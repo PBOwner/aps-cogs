@@ -20,6 +20,7 @@ ICON_PATH = pathlib.Path("abstract_swirl/abstract_swirl_160x160.png")
 
 class QuestionOfTheDay(DashboardIntegration, commands.Cog):
     def __init__(self, bot):
+        super().__init__(self)
         self.logger = logging.getLogger("red.aps-cogs.question_of_the_day")
         self.bot = bot
         self.config = Config.get_conf(
