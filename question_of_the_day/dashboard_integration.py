@@ -67,17 +67,24 @@ class DashboardIntegration:
 
     @dashboard_page(name="manage_qotd_questions", description="Manage QOTD questions.", methods=("GET", "POST"), is_owner=True)
     async def manage_qotd_questions_page(self, user: discord.User, guild: discord.Guild, **kwargs) -> typing.Dict[str, typing.Any]:
+        questions = await self.cog.config.guild(guild).questions()
+        question_choices = [(str(i), q['question']) for i, q in enumerate(questions)]
+
         class Form(kwargs["Form"]):
-            question: wtforms.StringField = wtforms.StringField("Question:", validators=[validators.InputRequired()])
+            def __init__(self):
+                super().__init__(prefix="manage_qotd_questions_form_")
+                self.remove_question.choices = question_choices
+
+            question: wtforms.StringField = wtforms.StringField("Question:", validators=[validators.Optional()])
+            remove_question: wtforms.SelectField = wtforms.SelectField("Remove Question:", validators=[validators.Optional()])
             action: wtforms.SelectField = wtforms.SelectField("Action:", choices=[("add", "Add"), ("remove", "Remove")])
-            index: wtforms.IntegerField = wtforms.IntegerField("Index (for remove action):", validators=[validators.Optional()])
             submit: wtforms.SubmitField = wtforms.SubmitField("Update Questions")
 
         form: Form = Form()
         if form.validate_on_submit() and await form.validate_dpy_converters():
             question = form.question.data
             action = form.action.data
-            index = form.index.data
+            remove_index = int(form.remove_question.data) if form.remove_question.data else None
             async with self.cog.config.guild(guild).questions() as questions:
                 if action == "add":
                     if len(questions) >= MAX_QUESTIONS_PER_GUILD:
@@ -88,8 +95,8 @@ class DashboardIntegration:
                         message = f"Question added successfully."
                         category = "success"
                 elif action == "remove":
-                    if 0 <= index < len(questions):
-                        removed_question = questions.pop(index)
+                    if remove_index is not None and 0 <= remove_index < len(questions):
+                        removed_question = questions.pop(remove_index)
                         message = f"Removed question: {removed_question['question']}"
                         category = "success"
                     else:
@@ -101,7 +108,6 @@ class DashboardIntegration:
                 "redirect_url": kwargs["request_url"],
             }
 
-        questions = await self.cog.config.guild(guild).questions()
         questions_list = '\n'.join([f"{i}. {q['question']}" for i, q in enumerate(questions)])
 
         source = f"""
