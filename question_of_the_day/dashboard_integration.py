@@ -34,6 +34,7 @@ class DashboardIntegration:
             qotd_channel: wtforms.SelectField = wtforms.SelectField("QOTD Channel:", validators=[validators.InputRequired()])
             qotd_time_hour: wtforms.IntegerField = wtforms.IntegerField("QOTD Time (Hour):", validators=[validators.InputRequired(), validators.NumberRange(min=0, max=23)])
             qotd_time_minute: wtforms.IntegerField = wtforms.IntegerField("QOTD Time (Minute):", validators=[validators.InputRequired(), validators.NumberRange(min=0, max=59)])
+            enabled: wtforms.BooleanField = wtforms.BooleanField("Enable QOTD Posting")
             submit: wtforms.SubmitField = wtforms.SubmitField("Update QOTD Settings")
 
         form: Form = Form()
@@ -41,6 +42,7 @@ class DashboardIntegration:
             channel_id = int(form.qotd_channel.data)
             qotd_time_hour = form.qotd_time_hour.data
             qotd_time_minute = form.qotd_time_minute.data
+            enabled = form.enabled.data
             channel = guild.get_channel(channel_id)
             if not isinstance(channel, discord.TextChannel):
                 return {
@@ -51,6 +53,7 @@ class DashboardIntegration:
 
             await self.cog.config.guild(guild).post_in_channel.set(channel_id)
             await self.cog.config.guild(guild).post_at.set({"hour": qotd_time_hour, "minute": qotd_time_minute})
+            await self.cog.config.guild(guild).enabled.set(enabled)
             await self.cog.update_guild_to_post_at(guild, qotd_time_hour, qotd_time_minute)
             return {
                 "status": 0,
@@ -70,6 +73,9 @@ class DashboardIntegration:
             </div>
             <div class="form-group">
                 {{ form.qotd_time_minute.label }} {{ form.qotd_time_minute(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ form.enabled.label }} {{ form.enabled(class="form-control") }}
             </div>
             <div class="form-group">
                 {{ form.submit(class="btn btn-primary") }}
@@ -104,8 +110,8 @@ class DashboardIntegration:
             remove_index = int(form.remove_question.data) if form.remove_question.data else None
             async with self.cog.config.guild(guild).questions() as questions:
                 if action == "add":
-                    if len(questions) >= 1000:  # Use the constant MAX_QUESTIONS_PER_GUILD if defined
-                        message = f"Error: too many questions already added in this server! Max is 1000."
+                    if len(questions) >= MAX_QUESTIONS_PER_GUILD:
+                        message = f"Error: too many questions already added in this server! Max is {MAX_QUESTIONS_PER_GUILD}."
                         category = "error"
                     else:
                         questions.append({"question": question, "asked_by": user.id})
@@ -138,6 +144,85 @@ class DashboardIntegration:
             </div>
             <div class="form-group">
                 {{ form.remove_question.label }} {{ form.remove_question(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ form.action.label }} {{ form.action(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ form.submit(class="btn btn-primary") }}
+            </div>
+        </form>
+        """
+
+        return {
+            "status": 0,
+            "web_content": {"source": source, "form": form},
+        }
+
+    @dashboard_page(name="manage_qotd_suggestions", description="Manage QOTD suggestions.", methods=("GET", "POST"), is_owner=True)
+    async def manage_qotd_suggestions_page(self, user: discord.User, guild: discord.Guild, **kwargs) -> typing.Dict[str, typing.Any]:
+        suggestions = await self.cog.config.guild(guild).suggested_questions()
+        suggestion_choices = [(str(i), q['question']) for i, q in enumerate(suggestions)]
+
+        class Form(kwargs["Form"]):
+            def __init__(self):
+                super().__init__(prefix="manage_qotd_suggestions_form_")
+                self.approve_suggestion.choices = suggestion_choices
+                self.deny_suggestion.choices = suggestion_choices
+
+            approve_suggestion: wtforms.SelectField = wtforms.SelectField("Approve Suggestion:", validators=[validators.Optional()])
+            deny_suggestion: wtforms.SelectField = wtforms.SelectField("Deny Suggestion:", validators=[validators.Optional()])
+            action: wtforms.SelectField = wtforms.SelectField("Action:", choices=[("approve", "Approve"), ("deny", "Deny")])
+            submit: wtforms.SubmitField = wtforms.SubmitField("Update Suggestions")
+
+        form: Form = Form()
+        if form.validate_on_submit() and await form.validate_dpy_converters():
+            action = form.action.data
+            approve_index = int(form.approve_suggestion.data) if form.approve_suggestion.data else None
+            deny_index = int(form.deny_suggestion.data) if form.deny_suggestion.data else None
+
+            async with self.cog.config.guild(guild).suggested_questions() as suggestions:
+                if action == "approve":
+                    if approve_index is not None and 0 <= approve_index < len(suggestions):
+                        suggestion = suggestions.pop(approve_index)
+                        async with self.cog.config.guild(guild).questions() as questions:
+                            if len(questions) < MAX_QUESTIONS_PER_GUILD:
+                                questions.append(suggestion)
+                                message = f"Approved suggestion: {suggestion['question']}"
+                                category = "success"
+                            else:
+                                message = f"Error: too many questions already added in this server! Max is {MAX_QUESTIONS_PER_GUILD}."
+                                category = "error"
+                    else:
+                        message = "Invalid suggestion index."
+                        category = "error"
+                elif action == "deny":
+                    if deny_index is not None and 0 <= deny_index < len(suggestions):
+                        denied_suggestion = suggestions.pop(deny_index)
+                        message = f"Denied suggestion: {denied_suggestion['question']}"
+                        category = "success"
+                    else:
+                        message = "Invalid suggestion index."
+                        category = "error"
+            return {
+                "status": 0,
+                "notifications": [{"message": message, "category": category}],
+                "redirect_url": kwargs["request_url"],
+            }
+
+        suggestions_list = '\n'.join([f"{i}. {q['question']}" for i, q in enumerate(suggestions)])
+
+        source = f"""
+        <h3>Manage QOTD Suggestions</h3>
+        <h4>Current Suggestions:</h4>
+        <pre>{suggestions_list}</pre>
+        <form method="post">
+            {{ form.hidden_tag() }}
+            <div class="form-group">
+                {{ form.approve_suggestion.label }} {{ form.approve_suggestion(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ form.deny_suggestion.label }} {{ form.deny_suggestion(class="form-control") }}
             </div>
             <div class="form-group">
                 {{ form.action.label }} {{ form.action(class="form-control") }}
