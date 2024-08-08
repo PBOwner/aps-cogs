@@ -150,5 +150,5 @@ class DashboardIntegration:
 
         return {
             "status": 0,
-            "web_content": {"source": source, "form": form},
+            "web_content": {"form": form, "source": source},
         }
