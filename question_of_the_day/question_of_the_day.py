@@ -204,7 +204,7 @@ class QuestionOfTheDay(DashboardIntegration, commands.Cog):
             )
         else:
             await ctx.reply(
-                "Error: the conditions 0  hours < 24 and 0  minutes < 60 must be observed."
+                "Error: the conditions 0 <= hours < 24 and 0 <= minutes < 60 must be observed."
             )
 
     @qotd.command()
