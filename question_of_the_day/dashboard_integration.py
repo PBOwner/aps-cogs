@@ -13,6 +13,10 @@ def dashboard_page(*args, **kwargs):  # This decorator is required because the c
 
 class DashboardIntegration:
     bot: Red
+    cog: commands.Cog
+
+    def __init__(self, cog: commands.Cog):
+        self.cog = cog
 
     @commands.Cog.listener()
     async def on_dashboard_cog_add(self, dashboard_cog: commands.Cog) -> None:  # ``on_dashboard_cog_add`` is triggered by the Dashboard cog automatically.
